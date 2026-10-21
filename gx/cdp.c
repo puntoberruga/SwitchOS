@@ -167,7 +167,7 @@ static void send_text(const char *text, size_t len)
 /* Sends a command to a session, or to the browser itself if to is "". */
 static void send_command(const char *to, const char *method, const char *params)
 {
-	char text[5000];
+	char text[12000];
 	int n;
 
 	if (to[0])
@@ -287,7 +287,7 @@ static void handle_window_message(const char *message)
 	char id[128];
 
 	if (strstr(message, "\"method\":\"Target.attachedToTarget\"")) {
-		char script[4096], params[4300];
+		char script[8192], params[9000];
 		int slot = -1;
 
 		if (!strstr(message, "\"type\":\"page\"") ||
