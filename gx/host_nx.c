@@ -64,7 +64,7 @@
 	"-w -b @chromium.ext4 /usr/lib/chromium/chromium-shell --no-sandbox --single-process " \
 	"--no-zygote --use-gl=angle --use-angle=gles-egl --ignore-gpu-blocklist " \
 	"--disable-gpu-sandbox --in-process-gpu --ozone-platform=wayland " \
-	"--enable-spatial-navigation --remote-debugging-pipe https://www.google.com/"
+	"--enable-spatial-navigation --start-fullscreen --kiosk --remote-debugging-pipe https://upleft.lovable.app/"
 /* The kernel's memory holds every file that is not on the root image (its
  * /tmp, a browser's profile and cache) and its network buffers: a browser on
  * a busy site went through 192 MB and the kernel panicked. With a profile
