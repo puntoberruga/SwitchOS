@@ -435,9 +435,15 @@ static void keyboard_focus(void);
  * whole screen for a video. */
 static void configure_window(struct object *surface, int full_screen)
 {
-	static const uint32_t states[] = { 1, 4, 2 };
+	/* xdg_toplevel states are mutually exclusive here: a fullscreen
+	 * window must not also be advertised as maximized. Sending both can
+	 * make Chromium reject/undo a fullscreen transition. */
+	static const uint32_t normal_states[] = { 1, 4 }; /* maximized, activated */
+	static const uint32_t fullscreen_states[] = { 2, 4 }; /* fullscreen, activated */
+	const uint32_t *states = full_screen ? fullscreen_states : normal_states;
+	uint32_t count = 2;
 
-	event(surface->toplevel, 0, "iia", WL_SCREEN_WIDTH, WL_SCREEN_HEIGHT, states, full_screen ? 3 : 2);
+	event(surface->toplevel, 0, "iia", WL_SCREEN_WIDTH, WL_SCREEN_HEIGHT, states, count);
 	event(surface->xdg, 0, "u", serial++);   /* xdg_surface.configure */
 }
 
