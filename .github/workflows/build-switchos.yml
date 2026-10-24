@@ -1,0 +1,74 @@
+name: Build SwitchOS NRO
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/wayland-fullscreen-state
+    paths:
+      - "gx/**"
+      - ".github/workflows/build-switchos.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: switchos-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout SwitchOS
+        uses: actions/checkout@v4
+
+      - name: Build Debian build image
+        run: docker build -t switchos-lkl -f gx/docker/Dockerfile .
+
+      - name: Start build containers with shared workspace
+        shell: bash
+        run: |
+          set -euxo pipefail
+          docker volume create lklwork
+          docker run -d --name lkl-gx \
+            -v "$GITHUB_WORKSPACE:/project" \
+            -v lklwork:/work \
+            switchos-lkl sleep infinity
+          docker run -d --name lkl-gx-nx \
+            -v "$GITHUB_WORKSPACE:/project" \
+            -v lklwork:/work \
+            devkitpro/devkita64:latest sleep infinity
+          docker exec lkl-gx-nx bash -lc \
+            'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y flex bison bc libelf-dev cpio rsync build-essential git python3'
+
+      - name: Prepare Linux as a library source
+        run: |
+          set -euxo pipefail
+          docker exec lkl-gx bash -lc 'git clone --depth 1 https://github.com/lkl/linux.git /work/linux'
+          docker exec lkl-gx bash -lc 'git -C /work/linux rev-parse --short HEAD'
+
+      - name: Build LKL and PC sysroot
+        run: |
+          set -euxo pipefail
+          docker exec lkl-gx bash /project/gx/build-lkl.sh
+          docker exec lkl-gx bash /project/gx/build-pc.sh
+
+      - name: Build Chromium root filesystem
+        run: docker exec lkl-gx bash /project/gx/build-chromium.sh
+
+      - name: Build Nintendo Switch NRO
+        run: |
+          set -euxo pipefail
+          docker exec lkl-gx-nx bash /project/gx/build-nx.sh
+          test -s gx/dist-nx/switch/chromium-nx/chromium-nx.nro
+
+      - name: Upload NRO and SD-card files
+        uses: actions/upload-artifact@v4
+        with:
+          name: SwitchOS-nro
+          path: |
+            gx/dist-nx/
+          if-no-files-found: error
+          retention-days: 14
